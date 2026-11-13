@@ -9,7 +9,13 @@ viennent du code (`ai_agents/engine/cycle.py`), et ton rôle est de les exécute
 
 Lis d'abord `ai_agents/memory/CONTRAT.md` et `ai_agents/memory/lessons.md`.
 
-## Cycle
+## Stratégie active
+Si `ai_agents/config/autopilot.json` contient `"strategy": "grid"`, applique la procédure de
+`.claude/commands/rearmer-grille.md` (ordres limite qui restent sur Coinbase et s'exécutent seuls ;
+achat sous le marché avec prise de bénéfice attachée, vente d'une tranche au-dessus du marché).
+Sinon, applique le cycle ci-dessous.
+
+## Cycle (stratégie tendance)
 1. `cat ai_agents/config/autopilot.json` → note le `mode`. Si `ai_agents/state/KILL` existe,
    arrête-toi et signale la raison.
 2. **Mode papier** : `python3 ai_agents/engine/cycle.py run`. Terminé.
@@ -34,7 +40,7 @@ Lis d'abord `ai_agents/memory/CONTRAT.md` et `ai_agents/memory/lessons.md`.
       fichier temporaire et lance `python3 ai_agents/engine/cycle.py record <fichier>`.
 
 ## Interdits absolus
-Créer un ordre qui n'est pas dans `pending_orders.json` du cycle en cours · modifier `mode`,
+Créer un ordre qui n'est ni dans `pending_orders.json` du cycle en cours ni dans le plan de `grid.py` du passage en cours · modifier `mode`,
 `risk_limits.json` ou `risk_gate.py` · transferts, conversions, retraits, dérivés, levier ·
 réessayer en boucle · trader un actif hors univers (les petits jetons du compte restent intacts).
 

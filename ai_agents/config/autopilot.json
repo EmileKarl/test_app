@@ -1,8 +1,13 @@
 {
-  "_comment": "Seul l'utilisateur modifie 'mode'. paper = simulation sur prix réels ; live = ordres réels sur Coinbase.",
-  "mode": "paper",
+  "_comment": "Mode et grille choisis par l'utilisateur le 2026-11-13 : ordres réels autonomes pour les petits montants.",
+  "mode": "live",
   "quote": "USDC",
-  "universe": ["BTC", "ETH", "SOL", "XRP"],
+  "universe": [
+    "BTC",
+    "ETH",
+    "SOL",
+    "XRP"
+  ],
   "paper_start_usd": 100,
   "min_order_usd": 2,
   "maker_fee": 0.0025,
@@ -13,5 +18,27 @@
     "min_paper_fills": 6,
     "paper_must_beat": "cash ET buy-and-hold de l'univers, nets de frais",
     "no_risk_gate_violation": true
+  },
+  "strategy": "grid",
+  "grid": {
+    "assets": [
+      "BTC",
+      "XRP",
+      "PUMP",
+      "NEAR",
+      "DOGE",
+      "AVAX",
+      "ETH",
+      "SOL"
+    ],
+    "order_usd": 3.0,
+    "min_order_usd": 1.2,
+    "max_sell_fraction": 0.25,
+    "vol_multiplier": 1.0,
+    "min_spacing": 0.025,
+    "max_spacing": 0.07,
+    "take_profit_multiple": 1.0,
+    "cash_reserve_fraction": 0.05,
+    "rearm_every_hours": 2
   }
 }

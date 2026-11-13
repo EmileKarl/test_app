@@ -91,5 +91,18 @@ class BacktestTests(unittest.TestCase):
         self.assertGreater(m["total_return_pct"], -100)
 
 
+class GridTests(unittest.TestCase):
+    def test_floor_to_increment(self):
+        import grid
+        self.assertEqual(grid.floor_to(0.123456789, "0.001"), "0.123")
+        self.assertEqual(grid.floor_to(524.9, "1"), "524")
+
+    def test_spacing_bounds(self):
+        import grid
+        g = {"min_spacing": 0.025, "max_spacing": 0.07, "vol_multiplier": 1.0}
+        self.assertEqual(grid.spacing(0.001, g), 0.025)   # couvre toujours les frais
+        self.assertEqual(grid.spacing(0.5, g), 0.07)
+
+
 if __name__ == "__main__":
     unittest.main()
