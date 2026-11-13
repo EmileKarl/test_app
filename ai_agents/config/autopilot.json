@@ -1,0 +1,17 @@
+{
+  "_comment": "Seul l'utilisateur modifie 'mode'. paper = simulation sur prix réels ; live = ordres réels sur Coinbase.",
+  "mode": "paper",
+  "quote": "USDC",
+  "universe": ["BTC", "ETH", "SOL", "XRP"],
+  "paper_start_usd": 100,
+  "min_order_usd": 2,
+  "maker_fee": 0.0025,
+  "taker_fee": 0.005,
+  "paper_slippage": 0.0005,
+  "promotion_to_live_criteria": {
+    "min_paper_days": 14,
+    "min_paper_fills": 6,
+    "paper_must_beat": "cash ET buy-and-hold de l'univers, nets de frais",
+    "no_risk_gate_violation": true
+  }
+}

@@ -1,14 +1,15 @@
 {
-  "_comment": "Limites lues par risk-probabilist et coinbase-executor. Valeurs prudentes par défaut : à ajuster par vous seul.",
+  "_comment": "FICHIER PROTÉGÉ. Lu par risk_gate.py, risk-probabilist et coinbase-executor. Seul l'utilisateur le modifie. Calibré pour un petit capital.",
   "base_currency": "USD",
-  "max_order_usd": 50,
-  "max_daily_volume_usd": 150,
-  "max_daily_loss_usd": 30,
-  "max_asset_pct_of_portfolio": 25,
+  "max_order_usd": 10,
+  "max_daily_volume_usd": 40,
+  "max_daily_loss_usd": 5,
+  "max_drawdown_pct": 15,
+  "max_asset_pct_of_portfolio": 40,
   "risk_per_trade_pct": 1,
-  "require_stop_loss": true,
+  "require_stop_loss": false,
   "allow_derivatives": false,
   "allow_withdrawals": false,
-  "allowed_products": ["BTC-USDC", "ETH-USDC", "SOL-USDC", "BTC-EUR", "ETH-EUR"],
+  "allowed_products": ["BTC-USDC", "ETH-USDC", "SOL-USDC", "XRP-USDC"],
   "preferred_order_type": "limit"
 }

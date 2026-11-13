@@ -151,3 +151,91 @@ et suivez la voie A ou B ; les agents et garde-fous du dépôt seront chargés a
 - Coinbase MCP : <https://docs.cdp.coinbase.com/ai-agents/coinbase-for-agents/coinbase-mcp>
 - Comparatif des outils agents Coinbase : <https://docs.cdp.coinbase.com/get-started/build-with-ai/comparing-agentic-tools>
 - AgentKit et MCP : <https://docs.cdp.coinbase.com/agent-kit/core-concepts/model-context-protocol>
+
+---
+
+## 5. Desk v2 — agents autonomes qui s'améliorent
+
+### Architecture
+```
+            ┌────────── chaque heure ──────────┐
+            │ /cycle-horaire → autopilot-trader │──► cycle.py ──► risk_gate.py ──► papier | Coinbase
+            └───────────────────────────────────┘          │                         (verrou hook)
+ chaque jour : /revue-quotidienne                          ▼
+   crypto-news-sentinel ─► agent-auditor ─► agent-improver ─► tests ─► commit (prompts, leçons)
+ chaque semaine : /evolution-hebdo
+   strategy-researcher ─► idées ─► evolve.py (champion vs challengers, hors échantillon)
+ mémoire : memory/CONTRAT.md · lessons.md · ideas.md · proposals.md · changelog.md
+ état privé : ai_agents/state/ (ignoré par git) ⇄ Google Drive « crypto-desk-state.json »
+```
+
+**Principe clé :** les décisions de trading viennent du **code** (déterministe, testé,
+backtesté) et pas de l'humeur d'un LLM. Les agents LLM font ce qu'ils font bien : veille,
+audit, amélioration des prompts, recherche d'idées. L'évolution des stratégies est mesurée hors
+échantillon : un challenger ne remplace le champion que s'il le bat sur des données jamais vues,
+frais inclus.
+
+### Les 10 agents
+| Agent | Rôle | Fréquence |
+|---|---|---|
+| `autopilot-trader` | Exécute `cycle.py` ; en réel, place les ordres approuvés (limit post-only) | horaire |
+| `agent-auditor` | Juge : tests, injection de fautes, intégrité des fichiers protégés, ordres orphelins, notes /5 | quotidienne |
+| `agent-improver` | Corrige les prompts et la mémoire à partir de l'audit (VERT), code de stratégie (JAUNE) | quotidienne |
+| `strategy-researcher` | Idées testables (web, GitHub, papiers) adaptées aux petits montants | hebdo |
+| `crypto-news-sentinel`, `market-data-analyst`, `quant-mathematician`, `risk-probabilist`, `crypto-accountant`, `coinbase-executor` | Desk v1, améliorés (contrat, prix Coinbase réels, PBR canadien…) | à la demande |
+
+### Garde-fous (3 couches)
+1. `engine/risk_gate.py` : chaque ordre (papier ou réel) est vérifié — produit, montant ≤ 10 $,
+   volume ≤ 40 $/jour, perte ≤ 5 $/jour, drawdown ≤ 15 % (coupe-circuit automatique), concentration ≤ 40 %.
+   Testé par injection de fautes : retirer une règle fait échouer les tests.
+2. `.claude/hooks/coinbase_guard.py` : verrou au niveau de l'outil Coinbase. Ordre du pilote
+   conforme → autorisé ; ordre manuel → **ta confirmation** ; hors limites → refusé.
+3. Contrat VERT/JAUNE/ROUGE + auditeur qui annule toute modification d'un fichier ROUGE.
+
+Coupe-circuit manuel à tout moment : `python3 ai_agents/engine/cycle.py kill "raison"`
+(retirer `ai_agents/state/KILL` — ou le champ `kill` du fichier Drive — pour relancer).
+
+### Activer le verrou (à faire par toi)
+L'outil de sécurité de Claude Code n'autorise pas un agent à modifier ses propres permissions :
+c'est à toi d'ajouter ceci dans `.claude/settings.json` (fusionner avec l'existant) :
+```json
+{
+  "permissions": {
+    "deny": [
+      "mcp__Coinbase__coinbase_transfer", "mcp__Coinbase__coinbase_x402_pay",
+      "mcp__Coinbase__coinbase_portfolios_delete", "mcp__Coinbase__coinbase_portfolios_leverage",
+      "mcp__Coinbase__coinbase_orders_close_position", "mcp__Coinbase__coinbase_convert_execute",
+      "Edit(ai_agents/config/**)", "Write(ai_agents/config/**)",
+      "Edit(ai_agents/engine/risk_gate.py)", "Write(ai_agents/engine/risk_gate.py)",
+      "Edit(.claude/hooks/**)", "Write(.claude/hooks/**)",
+      "Edit(.claude/settings.json)", "Write(.claude/settings.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "mcp__Coinbase__coinbase_orders_create|mcp__Coinbase__coinbase_orders_edit",
+      "hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/coinbase_guard.py"}]
+    }]
+  }
+}
+```
+Note : la règle actuelle `"mcp__coinbase"` (minuscule) ne correspond pas au connecteur claude.ai,
+qui s'appelle `mcp__Coinbase__…` (majuscule).
+
+### Passer du papier au réel (décision humaine uniquement)
+Critères (dans `config/autopilot.json`) : ≥ 14 jours et ≥ 6 exécutions en papier, rendement papier
+net de frais meilleur que le cash **et** que le buy-and-hold, aucune violation du garde-fou.
+Ensuite :
+1. Convertis à la main (app Coinbase) la somme à confier en **USDC** — il n'existe pas de paire
+   BTC-CAD ; le pilote ne touche qu'à USDC + BTC/ETH/SOL/XRP. Tes petits jetons restent intacts.
+2. Active le verrou (ci-dessus).
+3. Mets `"mode": "live"` dans `ai_agents/config/autopilot.json` (toi seul).
+4. Demande à Claude d'ajouter le connecteur Coinbase à la tâche planifiée horaire.
+
+### Ce qu'il faut savoir avant de rêver
+- Le capital du compte est petit et dispersé en nombreux petits jetons (détail privé, non commité).
+- Frais au palier Intro : 0,25 % maker / 0,5 % taker **par ordre**. Un aller-retour coûte 0,5 à 1 %.
+  La stratégie de départ, trop active, perdait ~7,7 % du capital en frais sur 4 mois en backtest.
+- Sur un petit capital, même +20 %/an reste quelques dizaines de dollars. L'objectif réaliste est d'apprendre et de ne pas perdre,
+  pas de s'enrichir ; le système sera le même si tu ajoutes du capital plus tard.
+- Aucun backtest ne garantit l'avenir ; la crypto peut perdre 50 % en quelques semaines.

@@ -42,3 +42,5 @@
 __pycache__/
 # Never commit Coinbase API keys
 *cdp_api_key*.json
+/ai_agents/state/*
+!/ai_agents/state/.keep
