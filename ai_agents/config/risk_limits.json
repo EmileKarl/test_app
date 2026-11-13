@@ -1,0 +1,14 @@
+{
+  "_comment": "Limites lues par risk-probabilist et coinbase-executor. Valeurs prudentes par défaut : à ajuster par vous seul.",
+  "base_currency": "USD",
+  "max_order_usd": 50,
+  "max_daily_volume_usd": 150,
+  "max_daily_loss_usd": 30,
+  "max_asset_pct_of_portfolio": 25,
+  "risk_per_trade_pct": 1,
+  "require_stop_loss": true,
+  "allow_derivatives": false,
+  "allow_withdrawals": false,
+  "allowed_products": ["BTC-USDC", "ETH-USDC", "SOL-USDC", "BTC-EUR", "ETH-EUR"],
+  "preferred_order_type": "limit"
+}

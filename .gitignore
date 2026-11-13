@@ -33,3 +33,12 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# AI agents: private trading data and market snapshots
+/ai_agents/ledger/*
+!/ai_agents/ledger/.keep
+/ai_agents/data/*
+!/ai_agents/data/.keep
+__pycache__/
+# Never commit Coinbase API keys
+*cdp_api_key*.json

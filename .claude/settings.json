@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "ask": [
+      "mcp__coinbase",
+      "Bash(coinbase orders create:*)",
+      "Bash(coinbase orders cancel:*)",
+      "Bash(coinbase convert:*)",
+      "Bash(coinbase transfer:*)",
+      "Bash(coinbase portfolios:*)"
+    ],
+    "deny": [
+      "Bash(coinbase withdraw:*)",
+      "Bash(coinbase send:*)"
+    ]
+  }
+}
