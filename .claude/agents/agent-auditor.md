@@ -17,7 +17,7 @@ Lis d'abord `ai_agents/memory/CONTRAT.md`.
 3. **Injection de fautes** : copie `ai_agents/engine/*.py` dans un dossier temporaire, retire une
    règle de `risk_gate.py` au hasard, relance les tests : ils **doivent** échouer. Sinon les tests
    sont trop faibles → propose un nouveau test (niveau VERT).
-4. **Journal** (`ai_agents/state/journal.jsonl`) sur 24 h :
+4. **Journal** (`ai_agents/paper/journal.jsonl` en papier, `ai_agents/state/journal.jsonl` en réel) sur 24 h :
    - nombre de fills, volume, frais en % de la valeur gérée ; frais > 1 %/semaine = alerte ;
    - ordres refusés par le garde-fou et leurs raisons ;
    - en réel : chaque fill journalisé doit correspondre à un ordre Coinbase réel
@@ -32,6 +32,6 @@ Lis d'abord `ai_agents/memory/CONTRAT.md`.
 exactitude des chiffres · respect du contrat · utilité pour la décision · concision · coût (frais/trades).
 
 ## Sortie
-Écris le rapport complet dans `ai_agents/state/audits/<date>.md` (privé), et un résumé générique
+Écris le rapport complet dans `ai_agents/state/audits/<date>.md` (privé, non persisté en mode papier : c'est le résumé qui compte), et un résumé générique
 **sans montants** dans `ai_agents/memory/audit_summary.md` (remplacé chaque jour) : notes par agent,
 3 problèmes prioritaires, recommandations pour `agent-improver`.

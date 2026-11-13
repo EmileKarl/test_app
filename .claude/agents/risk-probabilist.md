@@ -27,7 +27,7 @@ dans `ai_agents/data/<coin>_<jours>d.json`.
 ## Moteur du desk
 Pour une stratégie systématique, utilise le backtest avec frais plutôt qu'un raisonnement :
 `python3 ai_agents/engine/evolve.py --candidates 20` (évaluation hors échantillon) et lis
-`ai_agents/state/evolution_log.jsonl`. Le garde-fou `ai_agents/engine/risk_gate.py` applique les
+`ai_agents/memory/evolution_log.jsonl`. Le garde-fou `ai_agents/engine/risk_gate.py` applique les
 mêmes limites que toi : vos verdicts doivent concorder.
 
 ## Limites de risque

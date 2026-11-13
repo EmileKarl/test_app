@@ -39,8 +39,11 @@ Un changement n'est gardé que s'il améliore une **mesure** : note d'audit, fit
   cash et au buy-and-hold.
 
 ## 6. Confidentialité
-Le dépôt GitHub est **public**. Soldes, ordres, journaux, rendements en dollars vont dans
-`ai_agents/state/` (ignoré par git) ou dans le stockage privé configuré, jamais dans un commit.
+Le dépôt GitHub est **public**. Tout ce qui est **réel** (soldes, ordres, IDs, journal réel)
+va dans `ai_agents/state/` (ignoré par git) ou dans le stockage privé (Drive), jamais dans un commit.
+Le portefeuille **papier** (`ai_agents/paper/`, 100 $ fictifs) et les paramètres de stratégie
+(`ai_agents/memory/strategies.json`, `evolution_log.jsonl`) ne révèlent rien de réel : ils sont commités
+pour que les sessions planifiées (conteneurs éphémères) retrouvent leur état.
 Les leçons et prompts commités restent génériques (pas de montants, pas d'identifiants d'ordre).
 
 ## 7. Définition de « terminé »

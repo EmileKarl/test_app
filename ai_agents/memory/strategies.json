@@ -1,0 +1,32 @@
+{
+  "champion": {
+    "ema_fast": 9,
+    "ema_slow": 97,
+    "mom_lookback": 23,
+    "vol_lookback": 88,
+    "target_vol_annual": 1.0681123615912047,
+    "w_trend": 0.2525864077938834,
+    "w_mom": 0.0644141933476613,
+    "rebalance_threshold": 0.24194489433074665,
+    "granularity": "SIX_HOUR",
+    "name": "trend_mom_vol_v2"
+  },
+  "history": [
+    {
+      "retired": {
+        "name": "trend_mom_vol_v1",
+        "ema_fast": 12,
+        "ema_slow": 48,
+        "mom_lookback": 28,
+        "vol_lookback": 28,
+        "target_vol_annual": 0.6,
+        "w_trend": 0.5,
+        "w_mom": 0.5,
+        "rebalance_threshold": 0.06,
+        "granularity": "SIX_HOUR"
+      },
+      "at": "2026-11-13T18:46:53+00:00",
+      "replaced_by": "trend_mom_vol_v2"
+    }
+  ]
+}

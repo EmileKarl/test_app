@@ -44,3 +44,4 @@ __pycache__/
 *cdp_api_key*.json
 /ai_agents/state/*
 !/ai_agents/state/.keep
+# Portefeuille papier (fictif) commité ; état réel privé dans ai_agents/state

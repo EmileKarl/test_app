@@ -1,7 +1,7 @@
 """Stratégies paramétrées : chaque stratégie renvoie une exposition cible 0..1
 pour un actif, calculée uniquement avec les prix passés (pas de regard vers le futur).
 
-Les paramètres vivent dans ai_agents/state/strategies.json (champion) et sont
+Les paramètres vivent dans ai_agents/memory/strategies.json (champion) et sont
 modifiés par evolve.py, jamais à la main par un agent.
 """
 

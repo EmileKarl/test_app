@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import backtest  # noqa: E402
 import market  # noqa: E402
-from cycle import BARS_PER_YEAR, CONFIG, STATE, champion, load, now, save  # noqa: E402
+from cycle import BARS_PER_YEAR, CONFIG, MEMORY, champion, load, now, save  # noqa: E402
 from strategies import BOUNDS, clamp_params  # noqa: E402
 
 MARGIN = 0.25  # gain de fitness minimal pour promouvoir
@@ -92,7 +92,7 @@ def main(argv=None):
         and te["trades"] >= 2
         and (te["total_return_pct"] > 0 or te["excess_vs_hold_pct"] > 0)
     )
-    s = load(STATE / "strategies.json")
+    s = load(MEMORY / "strategies.json")
     report = {"ts": now().isoformat(timespec="seconds"), "granularity": gran, "bars": n,
               "champion_test": c_test, "champion_train": c_train,
               "best_challenger": {k: cand[k] for k in BOUNDS}, "challenger_train": tr,
@@ -103,8 +103,8 @@ def main(argv=None):
         s.setdefault("history", []).append({"retired": s["champion"], "at": report["ts"],
                                             "replaced_by": new["name"]})
         s["champion"] = new
-        save(STATE / "strategies.json", s)
-    with (STATE / "evolution_log.jsonl").open("a") as f:
+        save(MEMORY / "strategies.json", s)
+    with (MEMORY / "evolution_log.jsonl").open("a") as f:
         f.write(json.dumps(report, ensure_ascii=False) + "\n")
     print(json.dumps(report, indent=2, ensure_ascii=False))
 

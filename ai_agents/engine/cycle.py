@@ -6,7 +6,7 @@
     python3 ai_agents/engine/cycle.py status         # état du portefeuille géré
     python3 ai_agents/engine/cycle.py kill "raison"  # coupe-circuit manuel
 
-Mode papier : portefeuille simulé dans ai_agents/state/paper_portfolio.json.
+Mode papier : portefeuille fictif dans ai_agents/paper/portfolio.json (commité).
 Mode réel   : lit ai_agents/state/live_balances.json (écrit par l'agent depuis le
 MCP Coinbase) et écrit les ordres APPROUVÉS dans ai_agents/state/pending_orders.json ;
 l'agent les exécute (aperçu puis création) puis appelle `record`.
@@ -26,8 +26,15 @@ from strategies import DEFAULT_PARAMS, clamp_params, target_exposure  # noqa: E4
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config"
-STATE = ROOT / "state"
-STATE.mkdir(exist_ok=True)
+STATE = ROOT / "state"          # privé (réel) : ignoré par git
+PAPER = ROOT / "paper"          # fictif (papier) : commité, ne révèle rien de réel
+MEMORY = ROOT / "memory"        # paramètres de stratégie et historique d'évolution : commités
+for d in (STATE, PAPER):
+    d.mkdir(exist_ok=True)
+
+
+def sdir(mode: str) -> Path:
+    return PAPER if mode == "paper" else STATE
 BARS_PER_YEAR = {"ONE_HOUR": 8760, "TWO_HOUR": 4380, "SIX_HOUR": 1460, "ONE_DAY": 365}
 
 
@@ -50,12 +57,12 @@ def now() -> dt.datetime:
 
 def journal(entry: dict) -> None:
     entry = {"ts": now().isoformat(timespec="seconds"), **entry}
-    with (STATE / "journal.jsonl").open("a") as f:
+    with (sdir(entry.get("mode", "paper")) / "journal.jsonl").open("a") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def today_entries(mode: str) -> list[dict]:
-    p = STATE / "journal.jsonl"
+    p = sdir(mode) / "journal.jsonl"
     if not p.exists():
         return []
     day = now().date().isoformat()
@@ -68,20 +75,20 @@ def today_entries(mode: str) -> list[dict]:
 
 
 def champion() -> dict:
-    s = load(STATE / "strategies.json")
+    s = load(MEMORY / "strategies.json")
     if not s:
         s = {"champion": {**DEFAULT_PARAMS, "granularity": "SIX_HOUR"}, "history": []}
-        save(STATE / "strategies.json", s)
+        save(MEMORY / "strategies.json", s)
     return clamp_params(s["champion"]) | {"granularity": s["champion"].get("granularity", "SIX_HOUR"),
                                           "name": s["champion"].get("name", "champion")}
 
 
 def holdings(mode: str, cfg: dict) -> dict[str, float]:
     if mode == "paper":
-        pf = load(STATE / "paper_portfolio.json")
+        pf = load(PAPER / "portfolio.json")
         if not pf:
-            pf = {cfg["quote"]: float(cfg["paper_start_usd"])}
-            save(STATE / "paper_portfolio.json", pf)
+            pf = {cfg["quote"]: float(cfg["paper_start_usd"]), "_started": now().isoformat(timespec="seconds")}
+            save(PAPER / "portfolio.json", pf)
         return pf
     live = load(STATE / "live_balances.json")
     if not live:
@@ -116,7 +123,7 @@ def cmd_run() -> dict:
     cash = hold.get(quote, 0.0)
     equity = cash + sum(managed.values())
 
-    st = load(STATE / f"{mode}_risk_state.json", {}) or {}
+    st = load(sdir(mode) / "risk_state.json", {}) or {}
     day = now().date().isoformat()
     if st.get("day") != day:
         st["day"], st["day_start_equity"] = day, equity
@@ -124,16 +131,16 @@ def cmd_run() -> dict:
     dd = (1 - equity / st["high_water"]) * 100 if st["high_water"] else 0
     fills = today_entries(mode)
     ctx_base = {
-        "killed": (STATE / "KILL").exists(),
+        "killed": (STATE / "KILL").exists() or (PAPER / "KILL").exists(),
         "daily_volume_usd": sum(f["notional_usd"] for f in fills),
         "daily_pnl_usd": equity - st["day_start_equity"],
         "drawdown_pct": dd,
         "equity_usd": equity,
     }
     if dd >= limits["max_drawdown_pct"] and not ctx_base["killed"]:
-        (STATE / "KILL").write_text(f"drawdown {dd:.1f}% le {now().isoformat()}\n")
+        (sdir(mode) / "KILL").write_text(f"drawdown {dd:.1f}% le {now().isoformat()}\n")
         ctx_base["killed"] = True
-    save(STATE / f"{mode}_risk_state.json", st)
+    save(sdir(mode) / "risk_state.json", st)
 
     # Ventes d'abord (libèrent du cash), puis achats.
     proposals = []
@@ -175,7 +182,7 @@ def cmd_run() -> dict:
             managed[o["asset"]] = hold.get(o["asset"], 0.0) * prices[o["asset"]]
 
     if mode == "paper":
-        save(STATE / "paper_portfolio.json", hold)
+        save(PAPER / "portfolio.json", hold)
     else:
         save(STATE / "pending_orders.json", {"created": now().isoformat(), "orders": approved,
                                               "order_type": limits.get("preferred_order_type", "limit")})
@@ -214,9 +221,9 @@ def cmd_record(path: str) -> dict:
 
 def cmd_status() -> dict:
     cfg = load(CONFIG / "autopilot.json")
-    return {"mode": cfg["mode"], "killed": (STATE / "KILL").exists(),
-            "paper_portfolio": load(STATE / "paper_portfolio.json"),
-            "champion": load(STATE / "strategies.json", {}).get("champion")}
+    return {"mode": cfg["mode"], "killed": (STATE / "KILL").exists() or (PAPER / "KILL").exists(),
+            "paper_portfolio": load(PAPER / "portfolio.json"),
+            "champion": load(MEMORY / "strategies.json", {}).get("champion")}
 
 
 if __name__ == "__main__":
@@ -228,7 +235,8 @@ if __name__ == "__main__":
     elif args[0] == "status":
         out = cmd_status()
     elif args[0] == "kill":
-        (STATE / "KILL").write_text(" ".join(args[1:]) or "manuel")
+        mode = load(CONFIG / "autopilot.json")["mode"]
+        (sdir(mode) / "KILL").write_text(" ".join(args[1:]) or "manuel")
         out = {"killed": True}
     else:
         raise SystemExit(__doc__)

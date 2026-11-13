@@ -1,16 +1,22 @@
 ---
-description: Cycle de trading horaire autonome (papier ou réel) avec persistance de l'état privé
+description: Cycle de trading horaire autonome (papier ou réel) avec persistance de l'état
 ---
 
-Cycle horaire du desk. Lis `ai_agents/memory/CONTRAT.md`.
+Cycle horaire du desk. Lis `ai_agents/memory/CONTRAT.md`, puis `ai_agents/config/autopilot.json`.
 
-1. **Restaurer l'état** : cherche dans Google Drive le fichier `crypto-desk-state.json`
-   (`title = 'crypto-desk-state.json'`). S'il existe, lis son contenu, écris-le dans
-   `/tmp/desk_state.json` puis `python3 ai_agents/engine/state_io.py unpack < /tmp/desk_state.json`.
-   S'il n'existe pas, c'est le premier cycle : continue.
-2. Lance l'agent `autopilot-trader` : « exécute un cycle ». Attends son rapport.
-3. **Sauvegarder l'état** : `python3 ai_agents/engine/state_io.py pack > /tmp/desk_state.json`, puis
-   crée ou mets à jour le fichier Drive `crypto-desk-state.json` avec ce contenu (fichier privé,
-   jamais partagé).
-4. Ne commite rien (l'état est privé). Réponse : 3 lignes maximum (mode, valeur, ordres).
-   Si le coupe-circuit est actif ou si une anomalie apparaît, commence la réponse par « ⚠️ ».
+**Mode papier** (aucun connecteur nécessaire)
+1. `git pull` sur la branche courante.
+2. Lance l'agent `autopilot-trader` : « exécute un cycle » (il lance `cycle.py run`). N'appelle aucun outil Coinbase.
+3. `git add ai_agents/paper && git commit -m "paper: cycle horaire" && git push` (réessaie le push
+   après `git pull --rebase` en cas de conflit). Rien d'autre n'est commité.
+
+**Mode réel** (nécessite les connecteurs Google Drive et Coinbase, et le verrou activé)
+1. Vérifie que `.claude/settings.json` déclare `.claude/hooks/coinbase_guard.py` ; sinon réponds
+   « ⚠️ mode live sans verrou : aucun ordre passé » et arrête-toi.
+2. Restaure l'état privé : fichier Google Drive `crypto-desk-state.json` → `/tmp/desk_state.json` →
+   `python3 ai_agents/engine/state_io.py unpack < /tmp/desk_state.json` (absent = premier cycle).
+3. Lance `autopilot-trader` : « exécute un cycle ».
+4. `python3 ai_agents/engine/state_io.py pack > /tmp/desk_state.json` puis crée / mets à jour le
+   fichier Drive privé `crypto-desk-state.json`. Ne commite rien de réel.
+
+Réponse : 3 lignes maximum (mode, valeur, ordres). Anomalie ou coupe-circuit → commence par « ⚠️ ».

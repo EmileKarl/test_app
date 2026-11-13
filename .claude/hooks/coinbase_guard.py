@@ -36,8 +36,8 @@ def main():
     limits = load(ROOT / "config" / "risk_limits.json")
     if not limits:
         decide("deny", "risk_limits.json illisible : ordre refusé par sécurité")
-    if (ROOT / "state" / "KILL").exists():
-        decide("deny", "coupe-circuit actif (ai_agents/state/KILL)")
+    if (ROOT / "state" / "KILL").exists() or (ROOT / "paper" / "KILL").exists():
+        decide("deny", "coupe-circuit actif (fichier KILL)")
     pid, side = o.get("product_id"), o.get("side")
     if pid not in limits["allowed_products"]:
         decide("deny", f"produit {pid} hors liste autorisée")
