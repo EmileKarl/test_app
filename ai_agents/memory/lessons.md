@@ -12,3 +12,4 @@ L'agent-improver ajoute, fusionne et retire les leçons ; l'agent-auditor vérif
 - [2026-11-13] [coinbase] Le connecteur n'a ni outil de déstaking ni conversion CAD→USDC (USD↔USDC seulement) : le staking et les CAD se gèrent dans l'app Coinbase — preuve : liste des outils.
 - [2026-11-14] [audit] Après l'annulation d'une vente, `available_balance` exclut encore la quantité bloquée : le nouvel ordre doit se dimensionner sur la position TOTALE (disponible + bloqué), sinon la règle « petite position » vend une part énorme — preuve : test_grid.test_resize_after_cancel_uses_total_position.
 - [2026-11-14] [audit] La photo du compte doit être relue à chaque réarmement ; réutiliser une ancienne photo masque les exécutions — preuve : audit du 2026-11-14.
+- [2026-11-14] [utilisateur] SUI déstaké par l'utilisateur puis ajouté à la grille (SUI-USDC) à sa demande.

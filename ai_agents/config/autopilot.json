@@ -29,7 +29,8 @@
       "DOGE",
       "AVAX",
       "ETH",
-      "SOL"
+      "SOL",
+      "SUI"
     ],
     "order_usd": 3.0,
     "min_order_usd": 1.2,

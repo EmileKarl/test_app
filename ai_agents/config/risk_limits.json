@@ -1,5 +1,5 @@
 {
-  "_comment": "FICHIER PROTÉGÉ. Modifié sur instruction explicite de l'utilisateur (2026-11-13) : petits ordres autonomes, confirmation au-delà du seuil.",
+  "_comment": "FICHIER PROTÉGÉ. Modifié sur instruction explicite de l'utilisateur (2026-11-13) : petits ordres autonomes, confirmation au-delà du seuil. SUI-USDC ajouté sur demande de l'utilisateur (2026-11-14).",
   "base_currency": "USD",
   "max_order_usd": 10,
   "max_daily_volume_usd": 80,
@@ -18,7 +18,8 @@
     "DOGE-USDC",
     "AVAX-USDC",
     "ETH-USDC",
-    "SOL-USDC"
+    "SOL-USDC",
+    "SUI-USDC"
   ],
   "preferred_order_type": "limit",
   "auto_max_order_usd": 5,
