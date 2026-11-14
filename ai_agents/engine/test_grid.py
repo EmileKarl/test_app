@@ -1,0 +1,124 @@
+"""Tests du planificateur de grille (marché simulé, aucune requête réseau)."""
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import grid
+
+CFG = {"quote": "USDC", "grid": {
+    "assets": ["BTC", "DOGE", "ETH"], "order_usd": 3.0, "min_order_usd": 1.2,
+    "max_sell_fraction": 0.25, "vol_multiplier": 1.0, "min_spacing": 0.025,
+    "max_spacing": 0.07, "take_profit_multiple": 1.0, "cash_reserve_fraction": 0.05}}
+LIMITS = {"allowed_products": ["BTC-USDC", "DOGE-USDC", "ETH-USDC"], "max_order_usd": 10,
+          "max_daily_volume_usd": 80, "max_daily_loss_usd": 8, "max_drawdown_pct": 20,
+          "max_asset_pct_of_portfolio": 100, "auto_max_order_usd": 5, "allow_derivatives": False}
+PRODUCTS = {
+    "BTC-USDC": {"price": "68000", "base_increment": "0.00000001", "price_increment": "0.01", "quote_min_size": "1"},
+    "DOGE-USDC": {"price": "0.065", "base_increment": "0.1", "price_increment": "0.00001", "quote_min_size": "1"},
+    "ETH-USDC": {"price": "1900", "base_increment": "0.00000001", "price_increment": "0.01", "quote_min_size": "1"},
+}
+
+
+class GridPlanTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        (root / "state").mkdir()
+        (root / "paper").mkdir()
+        self.root = root
+        self.limits = dict(LIMITS)
+        patches = [
+            mock.patch.object(grid, "ROOT", root),
+            mock.patch.object(grid, "load", side_effect=lambda p: CFG if "autopilot" in str(p) else self.limits),
+            mock.patch.object(grid.market, "product", side_effect=lambda pid: PRODUCTS[pid]),
+            mock.patch.object(grid, "daily_vol", return_value=0.02),
+            mock.patch.object(grid, "live_volume_today", return_value=0.0),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def plan(self, balances, open_orders=()):
+        return grid.plan({"balances": balances, "open_orders": list(open_orders)})
+
+    def test_kill_gives_empty_plan(self):
+        (self.root / "state" / "KILL").write_text("test")
+        out = self.plan({"BTC": 0.001, "USDC": 50})
+        self.assertEqual(out["place"], [])
+        self.assertEqual(out["cancel"], [])
+
+    def test_one_sell_one_buy_per_asset_and_sides_correct(self):
+        out = self.plan({"BTC": 0.001, "DOGE": 100, "ETH": 0.01, "USDC": 30})
+        for pid in PRODUCTS:
+            sides = [o["side"] for o in out["place"] if o["product_id"] == pid]
+            self.assertLessEqual(sides.count("SELL"), 1)
+            self.assertLessEqual(sides.count("BUY"), 1)
+        for o in out["place"]:
+            px = float(PRODUCTS[o["product_id"]]["price"])
+            self.assertTrue(o["post_only"])
+            self.assertEqual(o["time_in_force"], "GTC")
+            if o["side"] == "SELL":
+                self.assertGreater(float(o["limit_price"]), px)
+            else:
+                self.assertLess(float(o["limit_price"]), px)
+                self.assertGreater(float(o["attached_take_profit_price"]),
+                                   float(o["limit_price"]) * (1 + 2 * 0.0025))
+
+    def test_idempotent_when_orders_in_band(self):
+        orders = [{"order_id": "1", "product_id": "BTC-USDC", "side": "SELL", "limit_price": "69700", "base_size": "0.00004"}]
+        out = self.plan({"BTC": 0.001, "USDC": 0}, orders)
+        self.assertFalse([o for o in out["place"] if o["product_id"] == "BTC-USDC"])
+        self.assertEqual(out["cancel"], [])
+
+    def test_recentre_boundary(self):
+        s = 0.025  # vol 2 % -> écart min 2,5 %
+        near = {"order_id": "a", "product_id": "BTC-USDC", "side": "SELL",
+                "limit_price": str(68000 * (1 + 2.49 * s)), "base_size": "0.00004"}
+        far = dict(near, order_id="b", limit_price=str(68000 * (1 + 2.51 * s)))
+        self.assertEqual(self.plan({"BTC": 0.001, "USDC": 0}, [near])["cancel"], [])
+        self.assertEqual(len(self.plan({"BTC": 0.001, "USDC": 0}, [far])["cancel"]), 1)
+
+    def test_resize_after_cancel_uses_total_position(self):
+        # Cas réel de l'audit : vente DOGE trop loin, 17,8 bloqués + 34,7 disponibles.
+        far = {"order_id": "d", "product_id": "DOGE-USDC", "side": "SELL", "limit_price": "0.0700", "base_size": "17.8"}
+        out = self.plan({"DOGE": 34.7, "USDC": 0}, [far])
+        self.assertEqual(len(out["cancel"]), 1)
+        sell = [o for o in out["place"] if o["product_id"] == "DOGE-USDC"][0]
+        total_value = (34.7 + 17.8) * 0.065
+        self.assertLessEqual(sell["notional_usd"] / (1.025), max(1.2, total_value * 0.25) + 0.01)
+        self.assertLess(float(sell["base_size"]), 30)  # jamais ~64 % de la position
+
+    def test_buy_budget_fair_and_capped(self):
+        out = self.plan({"USDC": 6.0})
+        buys = [o for o in out["place"] if o["side"] == "BUY"]
+        self.assertEqual(len(buys), 3)  # 6 × 0,95 / 3 = 1,9 $ chacun, au-dessus du minimum
+        self.assertLessEqual(sum(o["notional_usd"] for o in buys), 6.0 * 0.95 + 0.01)
+        amounts = [o["notional_usd"] for o in buys]
+        self.assertLess(max(amounts) - min(amounts), 0.05)
+
+    def test_unauthorised_product_skipped(self):
+        self.limits = dict(LIMITS, allowed_products=["BTC-USDC"])
+        out = self.plan({"DOGE": 100, "USDC": 0})
+        self.assertFalse([o for o in out["place"] if o["product_id"] == "DOGE-USDC"])
+        self.assertTrue(any(s["asset"] == "DOGE" for s in out["skipped"]))
+
+    def test_daily_volume_limit_blocks(self):
+        with mock.patch.object(grid, "live_volume_today", return_value=79.0):
+            out = self.plan({"BTC": 0.001, "USDC": 0})
+        self.assertEqual(out["place"], [])
+
+    def test_approval_flag_above_auto_threshold(self):
+        CFG["grid"]["order_usd"] = 8.0
+        try:
+            out = self.plan({"BTC": 0.01, "USDC": 0})
+        finally:
+            CFG["grid"]["order_usd"] = 3.0
+        self.assertTrue(all(o["needs_user_approval"] for o in out["place"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

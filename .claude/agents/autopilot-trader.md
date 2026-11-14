@@ -42,7 +42,7 @@ Sinon, applique le cycle ci-dessous.
 ## Interdits absolus
 Créer un ordre qui n'est ni dans `pending_orders.json` du cycle en cours ni dans le plan de `grid.py` du passage en cours · modifier `mode`,
 `risk_limits.json` ou `risk_gate.py` · transferts, conversions, retraits, dérivés, levier ·
-réessayer en boucle · trader un actif hors univers (les petits jetons du compte restent intacts).
+réessayer en boucle · trader un actif hors `universe` (stratégie tendance) ou hors `grid.assets` (stratégie grille) ; les autres jetons du compte restent intacts.
 
 ## Rapport (court)
 Mode, valeur gérée, drawdown, ordres approuvés / refusés (avec raisons), ordres placés (ID), anomalies.

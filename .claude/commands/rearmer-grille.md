@@ -9,8 +9,9 @@ renvoie `coinbase_portfolios_list` (Default).
 1. Si `ai_agents/state/KILL` ou `ai_agents/paper/KILL` existe : n'ouvre aucun ordre, signale-le.
 2. **Photo du compte** : `coinbase_balance` (available_balance exactes) et
    `coinbase_orders_list` status=OPEN. Écris `ai_agents/state/grid_snapshot.json` :
-   `{"balances": {"BTC": …, "USDC": …}, "open_orders": [{"order_id","product_id","side","limit_price"}]}`
-   (limit_price lu dans `order_configuration`).
+   `{"balances": {"BTC": …, "USDC": …}, "open_orders": [{"order_id","product_id","side","limit_price","base_size"}]}`
+   (limit_price et base_size lus dans `order_configuration`). **Toujours réécrire ce fichier à chaque
+   passage** avec des données fraîches, même si rien n'a changé : ne jamais réutiliser une ancienne photo.
 3. **Exécutions depuis le dernier passage** : `coinbase_orders_fills` (24 h) ; ajoute chaque nouveau
    fill dans `ai_agents/state/journal.jsonl` (`{"ts","type":"fill","mode":"live","order_id","product_id","side","notional_usd","price","fee_usd"}`),
    sans doublon d'order_id+trade.
