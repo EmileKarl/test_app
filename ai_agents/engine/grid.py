@@ -98,12 +98,16 @@ def plan(snapshot: dict) -> dict:
         mine = [o for o in desk if o["product_id"] == pid]
         on_hold = sum(float(o.get("base_size", 0)) for o in mine if o["side"] == "SELL")
         total_qty = bal.get(a, 0.0) + on_hold          # position totale, ordres compris
+        levels = int(g.get("ladder", {}).get(a, 1))   # nombre de paliers de vente
         keep = []
         for o in mine:
             lp = float(o["limit_price"])
-            if abs(lp / px - 1) > 2.5 * s:
+            dev = lp / px - 1
+            # Une vente peut aller jusqu'au dernier palier (+ marge) ; un achat reste à 2,5 écarts.
+            far = (dev > (levels + 1.5) * s or dev < -2.5 * s) if o["side"] == "SELL" else abs(dev) > 2.5 * s
+            if far:
                 actions["cancel"].append({"order_id": o["order_id"], "product_id": pid,
-                                          "reason": f"trop loin du marché ({lp / px - 1:+.1%})"})
+                                          "reason": f"trop loin du marché ({dev:+.1%})"})
                 # Les fonds de l'ordre annulé redeviennent disponibles pour le nouvel ordre.
                 if o["side"] == "SELL":
                     bal[a] = bal.get(a, 0.0) + float(o.get("base_size", 0))
@@ -111,12 +115,12 @@ def plan(snapshot: dict) -> dict:
                     cash += float(o.get("base_size", 0)) * lp
             else:
                 keep.append(o)
-        has_sell = any(o["side"] == "SELL" for o in keep)
+        sells = [o for o in keep if o["side"] == "SELL"]
         has_buy = any(o["side"] == "BUY" for o in keep)
 
         avail_value = bal.get(a, 0.0) * px
         total_value = total_qty * px
-        if not has_sell and avail_value >= g["min_order_usd"]:
+        if levels == 1 and not sells and avail_value >= g["min_order_usd"]:
             # La tranche se calcule sur la position TOTALE, jamais sur le seul disponible.
             chunk = min(g["order_usd"], max(g["min_order_usd"], total_value * g["max_sell_fraction"]))
             if total_value <= g["order_usd"] * 1.5 and total_value - chunk < g["min_order_usd"]:
@@ -131,6 +135,23 @@ def plan(snapshot: dict) -> dict:
                     "limit_price": floor_to(sell_px, prod["price_increment"]),
                     "client_order_id": f"desk-s-{a}-{stamp}", "asset": a,
                     "notional_usd": round(float(size) * sell_px, 2), "spacing": round(s, 4)})
+        elif levels > 1 and len(sells) < levels and avail_value >= g["min_order_usd"]:
+            # Échelle : toute la position disponible est répartie sur les paliers libres
+            # (palier k au prix marché × (1 + k × écart)), chaque ordre ≤ seuil d'autonomie.
+            taken = {max(1, round((float(o["limit_price"]) / px - 1) / s)) for o in sells}
+            free = [k for k in range(1, levels + 1) if k not in taken][: levels - len(sells)]
+            qty_each = bal.get(a, 0.0) * 0.999 / len(free)
+            for k in free:
+                sell_px = px * (1 + k * s)
+                q = min(qty_each, limits["auto_max_order_usd"] / sell_px)
+                size = floor_to(q, prod["base_increment"])
+                if Decimal(size) > 0 and float(size) * sell_px >= max(float(prod["quote_min_size"]), g["min_order_usd"]):
+                    actions["place"].append({
+                        "product_id": pid, "side": "SELL", "type": "limit", "post_only": True,
+                        "time_in_force": "GTC", "base_size": size,
+                        "limit_price": floor_to(sell_px, prod["price_increment"]),
+                        "client_order_id": f"desk-s{k}-{a}-{stamp}", "asset": a,
+                        "notional_usd": round(float(size) * sell_px, 2), "spacing": round(s, 4)})
         if not has_buy:
             need_bid.append(a)
 

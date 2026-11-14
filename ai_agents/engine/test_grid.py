@@ -119,6 +119,22 @@ class GridPlanTests(unittest.TestCase):
             CFG["grid"]["order_usd"] = 3.0
         self.assertTrue(all(o["needs_user_approval"] for o in out["place"]))
 
+    def test_sell_ladder_uses_whole_position_within_limits(self):
+        CFG["grid"]["ladder"] = {"ETH": 4}
+        try:
+            existing = [{"order_id": "e1", "product_id": "ETH-USDC", "side": "SELL",
+                         "limit_price": str(1900 * 1.025), "base_size": "0.0015"}]
+            out = self.plan({"ETH": 0.006, "USDC": 0}, existing)
+        finally:
+            CFG["grid"].pop("ladder")
+        rungs = [o for o in out["place"] if o["product_id"] == "ETH-USDC"]
+        self.assertEqual(len(rungs), 3)                       # 4 paliers - 1 existant
+        self.assertEqual(out["cancel"], [])                   # le palier 1 est conservé
+        prices = sorted(float(o["limit_price"]) for o in rungs)
+        self.assertGreater(prices[0], 1900 * 1.04)            # paliers 2, 3, 4 au-dessus du 1er
+        self.assertLessEqual(sum(float(o["base_size"]) for o in rungs), 0.006)
+        self.assertTrue(all(o["notional_usd"] <= 5 for o in rungs))
+
 
 if __name__ == "__main__":
     unittest.main()
