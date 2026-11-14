@@ -43,6 +43,9 @@
     "rearm_every_hours": 2,
     "ladder": {
       "SUI": 5
-    }
+    },
+    "use_signals": true,
+    "signal_strength": 1.0,
+    "pause_buys_below_score": 0.6
   }
 }

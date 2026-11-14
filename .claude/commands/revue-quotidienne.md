@@ -8,6 +8,8 @@ Revue quotidienne du desk. Lis `ai_agents/memory/CONTRAT.md`.
 2. Lance `crypto-news-sentinel` (dernières 24 h, actifs de `ai_agents/config/autopilot.json`).
    Si une alerte de sécurité grave touche un actif de l'univers (hack d'exchange, dépeg USDC,
    faille du protocole), écris `python3 ai_agents/engine/cycle.py kill "<raison>"`.
+2 bis. Lance `market-signals-analyst` : état des signaux (techniques, sentiment, financement) et
+   leur pouvoir prédictif mesuré ; une ligne dans le résumé.
 3. Lance `agent-auditor` (contrôles quotidiens complets). Attends son rapport.
 4. Lance `agent-improver` avec le résumé d'audit : au plus 3 améliorations VERTES prouvées.
 5. Lance les tests : `cd ai_agents/engine && python3 -m unittest test_engine` et

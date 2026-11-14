@@ -29,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import market  # noqa: E402
 import risk_gate  # noqa: E402
+import signals  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -50,6 +51,15 @@ def daily_vol(pid: str) -> float:
     r = [math.log(b / a) for a, b in zip(c, c[1:])]
     m = sum(r) / len(r)
     return math.sqrt(sum((x - m) ** 2 for x in r) / (len(r) - 1))
+
+
+def asset_score(asset: str, g: dict) -> float:
+    if not g.get("use_signals", True):
+        return 0.0
+    try:
+        return float(signals.compute(asset)["score"])
+    except Exception:
+        return 0.0  # données indisponibles : neutre, jamais bloquant
 
 
 def live_volume_today() -> float:
@@ -94,7 +104,12 @@ def plan(snapshot: dict) -> dict:
         prod = market.product(pid)
         px = float(prod["price"])
         s = spacing(daily_vol(pid), g)
-        info[a] = (pid, prod, px, s)
+        # Signaux : un score baissier écarte les achats, un score haussier remonte les ventes.
+        # Score nul (aucun signal prouvé) = aucun effet.
+        score = asset_score(a, g)
+        s_buy = s * (1 + g.get("signal_strength", 1.0) * max(0.0, -score))
+        s_sell = s * (1 + g.get("signal_strength", 1.0) * max(0.0, score))
+        info[a] = (pid, prod, px, s_buy)
         mine = [o for o in desk if o["product_id"] == pid]
         on_hold = sum(float(o.get("base_size", 0)) for o in mine if o["side"] == "SELL")
         total_qty = bal.get(a, 0.0) + on_hold          # position totale, ordres compris
@@ -126,7 +141,7 @@ def plan(snapshot: dict) -> dict:
             if total_value <= g["order_usd"] * 1.5 and total_value - chunk < g["min_order_usd"]:
                 chunk = total_value  # très petite position : vendue en entier
             chunk = min(chunk, avail_value * 0.999)
-            sell_px = px * (1 + s)
+            sell_px = px * (1 + s_sell)
             size = floor_to(chunk / sell_px, prod["base_increment"])
             if Decimal(size) > 0 and float(size) * sell_px >= float(prod["quote_min_size"]):
                 actions["place"].append({
@@ -142,7 +157,7 @@ def plan(snapshot: dict) -> dict:
             free = [k for k in range(1, levels + 1) if k not in taken][: levels - len(sells)]
             qty_each = bal.get(a, 0.0) * 0.999 / len(free)
             for k in free:
-                sell_px = px * (1 + k * s)
+                sell_px = px * (1 + k * s_sell)
                 q = min(qty_each, limits["auto_max_order_usd"] / sell_px)
                 size = floor_to(q, prod["base_increment"])
                 if Decimal(size) > 0 and float(size) * sell_px >= max(float(prod["quote_min_size"]), g["min_order_usd"]):
@@ -153,7 +168,10 @@ def plan(snapshot: dict) -> dict:
                         "client_order_id": f"desk-s{k}-{a}-{stamp}", "asset": a,
                         "notional_usd": round(float(size) * sell_px, 2), "spacing": round(s, 4)})
         if not has_buy:
-            need_bid.append(a)
+            if score <= -g.get("pause_buys_below_score", 0.6):
+                actions["skipped"].append({"asset": a, "reason": f"signaux fortement baissiers ({score:+.2f}) : achat suspendu"})
+            else:
+                need_bid.append(a)
 
     # Les achats se partagent équitablement le cash, au plus order_usd chacun.
     budget = cash * (1 - g["cash_reserve_fraction"])

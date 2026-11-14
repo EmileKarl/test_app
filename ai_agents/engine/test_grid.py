@@ -34,6 +34,7 @@ class GridPlanTests(unittest.TestCase):
             mock.patch.object(grid.market, "product", side_effect=lambda pid: PRODUCTS[pid]),
             mock.patch.object(grid, "daily_vol", return_value=0.02),
             mock.patch.object(grid, "live_volume_today", return_value=0.0),
+            mock.patch.object(grid, "asset_score", return_value=0.0),
         ]
         for p in patches:
             p.start()
@@ -134,6 +135,21 @@ class GridPlanTests(unittest.TestCase):
         self.assertGreater(prices[0], 1900 * 1.04)            # paliers 2, 3, 4 au-dessus du 1er
         self.assertLessEqual(sum(float(o["base_size"]) for o in rungs), 0.006)
         self.assertTrue(all(o["notional_usd"] <= 5 for o in rungs))
+
+    def test_bearish_score_widens_buys_and_strong_bearish_pauses(self):
+        base = [o for o in self.plan({"USDC": 6.0})["place"] if o["product_id"] == "BTC-USDC"][0]
+        with mock.patch.object(grid, "asset_score", return_value=-0.5):
+            wide = [o for o in self.plan({"USDC": 6.0})["place"] if o["product_id"] == "BTC-USDC"][0]
+        self.assertLess(float(wide["limit_price"]), float(base["limit_price"]))
+        with mock.patch.object(grid, "asset_score", return_value=-0.8):
+            out = self.plan({"USDC": 6.0})
+        self.assertFalse([o for o in out["place"] if o["side"] == "BUY"])
+
+    def test_bullish_score_raises_sells(self):
+        base = [o for o in self.plan({"BTC": 0.001})["place"] if o["side"] == "SELL"][0]
+        with mock.patch.object(grid, "asset_score", return_value=0.5):
+            high = [o for o in self.plan({"BTC": 0.001})["place"] if o["side"] == "SELL"][0]
+        self.assertGreater(float(high["limit_price"]), float(base["limit_price"]))
 
 
 if __name__ == "__main__":

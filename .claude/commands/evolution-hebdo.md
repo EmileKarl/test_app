@@ -8,6 +8,8 @@ description: Évolution hebdomadaire - recherche d'idées puis compétition cham
 2. Lance `strategy-researcher` : 1 à 3 nouvelles idées testables dans `ai_agents/memory/ideas.md`.
 3. Lance `agent-improver` : s'il existe une idée « à tester » bien spécifiée, l'implémenter comme
    composante (niveau JAUNE, poids 0 par défaut, test unitaire), tests verts obligatoires.
+3 bis. Réévalue les signaux sur l'historique à jour : `python3 ai_agents/engine/signal_eval.py --horizon 3`
+   (les poids passent à 0 ou deviennent actifs selon la preuve ; jamais modifiés à la main).
 4. `python3 ai_agents/engine/evolve.py --candidates 60 --bars 720` : le champion n'est remplacé que
    s'il est battu hors échantillon (règles dans evolve.py). Ne force jamais une promotion.
 5. Mets à jour le statut des idées dans `ideas.md` et ajoute une leçon prouvée dans `lessons.md`

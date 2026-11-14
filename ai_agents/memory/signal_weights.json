@@ -1,0 +1,150 @@
+{
+  "evaluated_at": "2026-11-14T14:23:37+00:00",
+  "horizon_days": 3,
+  "assets": [
+    "BTC",
+    "ETH",
+    "SOL",
+    "XRP",
+    "DOGE",
+    "AVAX",
+    "NEAR",
+    "SUI"
+  ],
+  "results": {
+    "rsi": {
+      "ic": 0.0176,
+      "t": 0.64,
+      "n": 4048,
+      "hit_rate": 0.514,
+      "ic_first_half": 0.0125,
+      "ic_second_half": 0.0173,
+      "stable": true,
+      "weight": 0.0
+    },
+    "macd": {
+      "ic": 0.0341,
+      "t": 1.25,
+      "n": 4048,
+      "hit_rate": 0.493,
+      "ic_first_half": 0.0318,
+      "ic_second_half": 0.0393,
+      "stable": true,
+      "weight": 0.0
+    },
+    "bollinger": {
+      "ic": -0.0028,
+      "t": -0.1,
+      "n": 4048,
+      "hit_rate": 0.502,
+      "ic_first_half": 0.0031,
+      "ic_second_half": -0.0145,
+      "stable": false,
+      "weight": 0.0
+    },
+    "ema_trend": {
+      "ic": -0.013,
+      "t": -0.48,
+      "n": 4048,
+      "hit_rate": 0.495,
+      "ic_first_half": -0.0107,
+      "ic_second_half": -0.0186,
+      "stable": true,
+      "weight": 0.0
+    },
+    "momentum": {
+      "ic": 0.015,
+      "t": 0.55,
+      "n": 4048,
+      "hit_rate": 0.514,
+      "ic_first_half": 0.0117,
+      "ic_second_half": 0.013,
+      "stable": true,
+      "weight": 0.0
+    },
+    "donchian": {
+      "ic": -0.0078,
+      "t": -0.29,
+      "n": 4048,
+      "hit_rate": 0.499,
+      "ic_first_half": 0.0043,
+      "ic_second_half": -0.0284,
+      "stable": false,
+      "weight": 0.0
+    },
+    "volume": {
+      "ic": 0.0024,
+      "t": 0.09,
+      "n": 4048,
+      "hit_rate": 0.5,
+      "ic_first_half": 0.003,
+      "ic_second_half": 0.0013,
+      "stable": false,
+      "weight": 0.0
+    },
+    "candles": {
+      "ic": -0.0221,
+      "t": -0.81,
+      "n": 4048,
+      "hit_rate": 0.506,
+      "ic_first_half": -0.0,
+      "ic_second_half": -0.0274,
+      "stable": false,
+      "weight": 0.0
+    },
+    "rsi_divergence": {
+      "ic": -0.0148,
+      "t": -0.54,
+      "n": 4048,
+      "hit_rate": 0.504,
+      "ic_first_half": -0.0233,
+      "ic_second_half": -0.0101,
+      "stable": true,
+      "weight": 0.0
+    },
+    "zscore": {
+      "ic": -0.0028,
+      "t": -0.1,
+      "n": 4048,
+      "hit_rate": 0.502,
+      "ic_first_half": 0.0031,
+      "ic_second_half": -0.0145,
+      "stable": false,
+      "weight": 0.0
+    },
+    "fear_greed": {
+      "ic": -0.0192,
+      "t": -0.3,
+      "n": 716,
+      "hit_rate": 0.492,
+      "ic_first_half": -0.018,
+      "ic_second_half": -0.0962,
+      "stable": true,
+      "weight": 0.0
+    },
+    "funding": {
+      "ic": -0.1956,
+      "t": -0.62,
+      "n": 30,
+      "hit_rate": 0.267,
+      "ic_first_half": -0.0786,
+      "ic_second_half": -0.0321,
+      "stable": true,
+      "weight": 0.0
+    }
+  },
+  "weights": {
+    "rsi": 0.0,
+    "macd": 0.0,
+    "bollinger": 0.0,
+    "ema_trend": 0.0,
+    "momentum": 0.0,
+    "donchian": 0.0,
+    "volume": 0.0,
+    "candles": 0.0,
+    "rsi_divergence": 0.0,
+    "zscore": 0.0,
+    "fear_greed": 0.0,
+    "funding": 0.0
+  }
+}
