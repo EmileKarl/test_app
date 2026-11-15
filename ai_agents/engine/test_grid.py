@@ -151,6 +151,18 @@ class GridPlanTests(unittest.TestCase):
             high = [o for o in self.plan({"BTC": 0.001})["place"] if o["side"] == "SELL"][0]
         self.assertGreater(float(high["limit_price"]), float(base["limit_price"]))
 
+    def test_buy_first_mode_never_sells_holdings(self):
+        CFG["grid"]["sell_existing_holdings"] = False
+        try:
+            out = self.plan({"BTC": 0.01, "DOGE": 500, "USDC": 9.0})
+        finally:
+            CFG["grid"].pop("sell_existing_holdings")
+        self.assertFalse([o for o in out["place"] if o["side"] == "SELL"])
+        buys = [o for o in out["place"] if o["side"] == "BUY"]
+        self.assertTrue(buys)
+        for o in buys:  # la revente attachée couvre les frais aller-retour
+            self.assertGreaterEqual(float(o["attached_take_profit_price"]) / float(o["limit_price"]), 1.024)
+
 
 if __name__ == "__main__":
     unittest.main()

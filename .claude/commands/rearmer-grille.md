@@ -15,6 +15,8 @@ renvoie `coinbase_portfolios_list` (Default).
 3. **Exécutions depuis le dernier passage** : `coinbase_orders_fills` (24 h) ; ajoute chaque nouveau
    fill dans `ai_agents/state/journal.jsonl` (`{"ts","type":"fill","mode":"live","order_id","product_id","side","notional_usd","price","fee_usd"}`),
    sans doublon d'order_id+trade.
+3 bis. **Financement** : si `coinbase_balance` montre des USD disponibles ≥ 1 $, les convertir en USDC
+   (USD→USDC, `coinbase_convert_quote` puis `coinbase_convert_execute`, sans frais) : la grille cote en USDC.
 4. **Plan** : `python3 ai_agents/engine/grid.py plan ai_agents/state/grid_snapshot.json`.
 5. **Annulations** du plan via `coinbase_orders_cancel`, puis relis les soldes si des fonds ont été libérés
    et relance le plan.

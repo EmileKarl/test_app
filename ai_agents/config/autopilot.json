@@ -1,5 +1,5 @@
 {
-  "_comment": "Mode et grille choisis par l'utilisateur le 2026-11-13 : ordres réels autonomes pour les petits montants.",
+  "_comment": "Mode réel, grille « acheter d'abord » choisie par l'utilisateur le 2026-11-15 : achats sous le marché avec revente attachée, jamais de vente des avoirs existants.",
   "mode": "live",
   "quote": "USDC",
   "universe": [
@@ -41,11 +41,9 @@
     "take_profit_multiple": 1.0,
     "cash_reserve_fraction": 0.05,
     "rearm_every_hours": 2,
-    "ladder": {
-      "SUI": 5
-    },
     "use_signals": true,
     "signal_strength": 1.0,
-    "pause_buys_below_score": 0.6
+    "pause_buys_below_score": 0.6,
+    "sell_existing_holdings": false
   }
 }

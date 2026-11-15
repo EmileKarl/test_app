@@ -135,6 +135,8 @@ def plan(snapshot: dict) -> dict:
 
         avail_value = bal.get(a, 0.0) * px
         total_value = total_qty * px
+        if not g.get("sell_existing_holdings", True):
+            avail_value = 0.0  # mode « acheter d'abord » : on ne vend jamais les avoirs existants
         if levels == 1 and not sells and avail_value >= g["min_order_usd"]:
             # La tranche se calcule sur la position TOTALE, jamais sur le seul disponible.
             chunk = min(g["order_usd"], max(g["min_order_usd"], total_value * g["max_sell_fraction"]))
