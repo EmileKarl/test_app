@@ -163,6 +163,26 @@ class GridPlanTests(unittest.TestCase):
         for o in buys:  # la revente attachée couvre les frais aller-retour
             self.assertGreaterEqual(float(o["attached_take_profit_price"]) / float(o["limit_price"]), 1.024)
 
+    def test_buy_ladder_levels_and_take_profit(self):
+        CFG["grid"].update({"sell_existing_holdings": False, "buy_levels": [0.015, 0.03, 0.045], "take_profit_pct": 0.02, "order_usd": 2.0})
+        try:
+            out = self.plan({"BTC": 0.01, "USDC": 30.0})
+            # une revente attachée existante (SELL) ne doit jamais être annulée
+            tp = [{"order_id": "tp", "product_id": "BTC-USDC", "side": "SELL", "limit_price": "90000", "base_size": "0.00003"}]
+            out2 = self.plan({"USDC": 30.0}, tp)
+        finally:
+            for k in ("sell_existing_holdings", "buy_levels", "take_profit_pct"):
+                CFG["grid"].pop(k)
+            CFG["grid"]["order_usd"] = 3.0
+        btc = sorted(float(o["limit_price"]) for o in out["place"] if o["product_id"] == "BTC-USDC")
+        self.assertEqual(len(btc), 3)
+        for got, lvl in zip(sorted(btc, reverse=True), [0.015, 0.03, 0.045]):
+            self.assertAlmostEqual(got, 68000 * (1 - lvl), delta=1)
+        for o in out["place"]:
+            self.assertAlmostEqual(float(o["attached_take_profit_price"]) / float(o["limit_price"]), 1.02, places=3)
+            self.assertLessEqual(o["notional_usd"], 2.0)
+        self.assertEqual(out2["cancel"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

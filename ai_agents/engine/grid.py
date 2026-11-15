@@ -119,7 +119,14 @@ def plan(snapshot: dict) -> dict:
             lp = float(o["limit_price"])
             dev = lp / px - 1
             # Une vente peut aller jusqu'au dernier palier (+ marge) ; un achat reste à 2,5 écarts.
-            far = (dev > (levels + 1.5) * s or dev < -2.5 * s) if o["side"] == "SELL" else abs(dev) > 2.5 * s
+            ladder_b = g.get("buy_levels")
+            if o["side"] == "SELL":
+                # En mode « acheter d'abord », une vente est la revente attachée d'un achat : on n'y touche pas.
+                far = False if not g.get("sell_existing_holdings", True) else (dev > (levels + 1.5) * s or dev < -2.5 * s)
+            elif ladder_b:
+                far = dev < -(max(ladder_b) + min(ladder_b)) or dev > 0
+            else:
+                far = abs(dev) > 2.5 * s
             if far:
                 actions["cancel"].append({"order_id": o["order_id"], "product_id": pid,
                                           "reason": f"trop loin du marché ({dev:+.1%})"})
@@ -169,7 +176,16 @@ def plan(snapshot: dict) -> dict:
                         "limit_price": floor_to(sell_px, prod["price_increment"]),
                         "client_order_id": f"desk-s{k}-{a}-{stamp}", "asset": a,
                         "notional_usd": round(float(size) * sell_px, 2), "spacing": round(s, 4)})
-        if not has_buy:
+        if g.get("buy_levels"):
+            buys = [o for o in keep if o["side"] == "BUY"]
+            taken = {min(range(len(g["buy_levels"])), key=lambda i: abs((1 - float(o["limit_price"]) / px) - g["buy_levels"][i])) for o in buys}
+            if score <= -g.get("pause_buys_below_score", 0.6):
+                actions["skipped"].append({"asset": a, "reason": f"signaux fortement baissiers ({score:+.2f}) : achat suspendu"})
+            else:
+                for i, lvl in enumerate(g["buy_levels"]):
+                    if i not in taken:
+                        need_bid.append((a, lvl))
+        elif not has_buy:
             if score <= -g.get("pause_buys_below_score", 0.6):
                 actions["skipped"].append({"asset": a, "reason": f"signaux fortement baissiers ({score:+.2f}) : achat suspendu"})
             else:
@@ -177,23 +193,24 @@ def plan(snapshot: dict) -> dict:
 
     # Les achats se partagent équitablement le cash, au plus order_usd chacun.
     budget = cash * (1 - g["cash_reserve_fraction"])
-    for i, a in enumerate(need_bid):
+    for i, item in enumerate(need_bid):
+        a, lvl = item if isinstance(item, tuple) else (item, None)
         pid, prod, px, s = info[a]
         amount = min(g["order_usd"], budget / (len(need_bid) - i))
         if amount < max(g["min_order_usd"], float(prod["quote_min_size"])):
             actions["skipped"].append({"asset": a, "reason": "pas assez de cash pour un achat"})
             continue
-        buy_px = px * (1 - s)
+        buy_px = px * (1 - (lvl if lvl is not None else s))
         size = floor_to(amount / buy_px, prod["base_increment"])
         if Decimal(size) <= 0 or float(size) * buy_px < float(prod["quote_min_size"]):
             continue
-        tp_px = buy_px * (1 + g["take_profit_multiple"] * s)
+        tp_px = buy_px * (1 + (g["take_profit_pct"] if lvl is not None and g.get("take_profit_pct") else g["take_profit_multiple"] * s))
         actions["place"].append({
             "product_id": pid, "side": "BUY", "type": "limit", "post_only": True,
             "time_in_force": "GTC", "base_size": size,
             "limit_price": floor_to(buy_px, prod["price_increment"]),
             "attached_take_profit_price": floor_to(tp_px, prod["price_increment"]),
-            "client_order_id": f"desk-b-{a}-{stamp}", "asset": a,
+            "client_order_id": f"desk-b{'' if lvl is None else int(lvl*1000)}-{a}-{stamp}", "asset": a,
             "notional_usd": round(float(size) * buy_px, 2), "spacing": round(s, 4)})
         budget -= float(size) * buy_px
 
