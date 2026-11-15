@@ -86,6 +86,9 @@ def plan(snapshot: dict) -> dict:
     g = cfg["grid"]
     quote = cfg["quote"]
     actions = {"cancel": [], "place": [], "skipped": [], "generated_at": int(time.time())}
+    if g.get("paused"):
+        actions["skipped"].append({"asset": "*", "reason": "grille en pause (demande de l'utilisateur)"})
+        return actions
     if (ROOT / "state" / "KILL").exists() or (ROOT / "paper" / "KILL").exists():
         actions["skipped"].append({"asset": "*", "reason": "coupe-circuit actif (KILL)"})
         return actions

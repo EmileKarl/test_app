@@ -1,5 +1,5 @@
 {
-  "_comment": "Mode réel, grille « acheter d'abord » choisie par l'utilisateur le 2026-11-15 : achats sous le marché avec revente attachée, jamais de vente des avoirs existants.",
+  "_comment": "2026-11-15 : grille EN PAUSE à la demande de l'utilisateur (tous les achats annulés). Reprise uniquement sur son accord explicite.",
   "mode": "live",
   "quote": "USDC",
   "universe": [
@@ -44,6 +44,7 @@
     "use_signals": true,
     "signal_strength": 1.0,
     "pause_buys_below_score": 0.6,
-    "sell_existing_holdings": false
+    "sell_existing_holdings": false,
+    "paused": true
   }
 }
